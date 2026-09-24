@@ -21,6 +21,9 @@ class StudentResource extends JsonResource
             'fullName' => $this->full_name,
             'status' => $this->status,
             'sessionTime' => $this->sessionTime ?? null,
+            'faceSampleLabels' => $this->whenLoaded('faceEmbeddings', function () {
+                return $this->faceEmbeddings->pluck('sampleLabel')->values();
+            }),
         ];
     }
 }

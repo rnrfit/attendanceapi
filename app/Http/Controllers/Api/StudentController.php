@@ -13,12 +13,17 @@ class StudentController extends ApiController
      *
      * All active students for the configured tenant/location (not scoped to
      * today's schedule) — used to populate a full student picker/search.
+     * Includes each student's stored face sample labels so the app can tell
+     * who still needs a face capture.
      */
     public function all()
     {
         $students = Student::query()
             ->forTenantLocation($this->tenantId(), $this->locationId())
             ->active()
+            ->with(['faceEmbeddings' => function ($query) {
+                $query->select('id', 'studentId', 'sampleLabel');
+            }])
             ->orderBy('firstName')
             ->get();
 

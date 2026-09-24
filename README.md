@@ -69,6 +69,23 @@ Stores a face embedding captured/generated on-device for a student.
 ```
 `404` if the student doesn't exist / isn't active for the configured tenant/location. `422` on validation failure.
 
+### `POST /api/v1/students/{studentId}/embeddings/replace`
+Replaces **all** of a student's stored embeddings with a new set, in one transaction (used when a student is (re-)enrolled, so earlier samples — possibly of a different face — can't keep matching).
+
+**Request**
+```json
+{
+  "samples": [
+    { "embedding": [0.123, -0.045, ...], "sampleLabel": "v2-front" },
+    { "embedding": [0.101, -0.032, ...], "sampleLabel": "v2-left" }
+  ],
+  "createdBy": "device-uuid"
+}
+```
+`samples`: required, 1–10 items, each with a numeric `embedding` array and optional `sampleLabel` (max 20 chars). `createdBy`: optional, defaults to `"mobile-app"`.
+
+**Response `200`** — the new embeddings, same shape as `GET` below. `404` if the student doesn't exist / isn't active; `422` on validation failure (nothing is deleted).
+
 ### `GET /api/v1/students/{studentId}/embeddings`
 All stored embeddings for one student.
 
@@ -81,6 +98,27 @@ Bulk convenience endpoint: every embedding for every student on today's roster, 
 ```json
 { "success": true, "data": { "3119": [ { "id": 1, "studentId": 3119, "sampleLabel": "front", "embedding": [...], "createdAt": "..." } ] } }
 ```
+`data` is `[]` (not `{}`) when there are no embeddings.
+
+### `GET /api/v1/embeddings?sampleLabelPrefix=v2-`
+Same shape as `/embeddings/today`, but for **every** active student, not only today's roster — the scanner uses it to name an enrolled student even on a day their batch isn't scheduled (without marking attendance). `sampleLabelPrefix` (optional) keeps only samples whose `sampleLabel` starts with it.
+
+### `POST /api/v1/embeddings/match`
+Finds the active student whose stored embedding is most similar (cosine) to a probe — used during enrollment to refuse registering one face for two students.
+
+**Request**
+```json
+{ "embedding": [0.123, -0.045, ...], "excludeStudentId": 3119, "sampleLabelPrefix": "v2-" }
+```
+`excludeStudentId` and `sampleLabelPrefix` are optional.
+
+**Response `200`** — `data` is `null` when nothing is stored:
+```json
+{ "success": true, "data": { "studentId": 4017, "studentName": "Rohan Singh", "score": 0.9312 } }
+```
+
+### `GET /api/v1/students`
+All active students (for the enrollment picker). Same fields as `/students/today`, plus `faceSampleLabels`: the `sampleLabel`s of the student's stored face embeddings (`[]` when none).
 
 ### `POST /api/v1/attendance`
 Marks attendance for a student, today. `sessionDate` is always the server's current date; `sessionTime` is stored as a separate column. **Idempotent per day** — calling this again for the same student on the same day returns the existing record (`200`) instead of creating a duplicate.
