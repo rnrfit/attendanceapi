@@ -22,7 +22,10 @@ Route::prefix('v1')->middleware('api.key')->group(function () {
 
     Route::get('/students/{studentId}/embeddings', [StudentEmbeddingController::class, 'index']);
     Route::post('/students/{studentId}/embeddings', [StudentEmbeddingController::class, 'store']);
+    Route::post('/students/{studentId}/embeddings/replace', [StudentEmbeddingController::class, 'replace']);
+    Route::get('/embeddings', [StudentEmbeddingController::class, 'all']);
     Route::get('/embeddings/today', [StudentEmbeddingController::class, 'today']);
+    Route::post('/embeddings/match', [StudentEmbeddingController::class, 'match']);
 
     Route::get('/attendance/stats', [AttendanceController::class, 'stats']);
     Route::get('/attendance', [AttendanceController::class, 'index']);
